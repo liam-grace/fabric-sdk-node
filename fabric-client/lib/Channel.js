@@ -1049,7 +1049,7 @@ const Channel = class {
 	 * @param {OrdererRequest} request - Optional - A transaction ID object
 	 * @returns {Promise} A Promise for an encoded protobuf "Block"
 	 */
-	getGenesisBlock(request) {
+	async getGenesisBlock(request) {
 		logger.debug('getGenesisBlock - start');
 
 		if (!request) {
@@ -1103,7 +1103,7 @@ const Channel = class {
 		seekPayload.setHeader(seekHeader);
 		seekPayload.setData(seekInfo.toBuffer());
 		// building manually or will get protobuf errors on send
-		const envelope = client_utils.toEnvelope(client_utils.signProposal(signer, seekPayload));
+		const envelope = client_utils.toEnvelope(await client_utils.signProposal(signer, seekPayload));
 
 		return orderer.sendDeliver(envelope);
 	}
@@ -1213,7 +1213,7 @@ const Channel = class {
 		discovery_request.setQueries(queries);
 
 		// build up the outbound request object
-		const signed_request = client_utils.toEnvelope(client_utils.signProposal(signer, discovery_request));
+		const signed_request = client_utils.toEnvelope(await client_utils.signProposal(signer, discovery_request));
 
 		const response = await target_peer.sendDiscovery(signed_request);
 		logger.debug('%s - processing discovery response', method);
@@ -1686,7 +1686,7 @@ const Channel = class {
 	 *                              of the {@link Peer} instance(s) and the global timeout in the config settings.
 	 * @returns {Promise} A Promise for an array of {@link ProposalResponse} from the target peers
 	 */
-	joinChannel(request, timeout) {
+	async joinChannel(request, timeout) {
 		logger.debug('joinChannel - start');
 		let errorMsg = null;
 
@@ -1734,7 +1734,7 @@ const Channel = class {
 
 		const header = client_utils.buildHeader(signer, channelHeader, request.txId.getNonce());
 		const proposal = client_utils.buildProposal(chaincodeSpec, header);
-		const signed_proposal = client_utils.signProposal(signer, proposal);
+		const signed_proposal = await client_utils.signProposal(signer, proposal);
 
 		return client_utils.sendPeersProposal(targets, signed_proposal, timeout).catch((err) => {
 			logger.error('joinChannel - Failed Proposal. Error: %s', err.stack ? err.stack : err);
@@ -1841,7 +1841,7 @@ const Channel = class {
 		seekPayload.setData(seekInfo.toBuffer());
 
 		// building manually or will get protobuf errors on send
-		let envelope = client_utils.toEnvelope(client_utils.signProposal(signer, seekPayload));
+		let envelope = client_utils.toEnvelope(await client_utils.signProposal(signer, seekPayload));
 		// This will return us a block
 		let block = await orderer.sendDeliver(envelope);
 		logger.debug('%s - good results from seek block ', method); // :: %j',results);
@@ -1898,7 +1898,7 @@ const Channel = class {
 		seekPayload.setData(seekInfo.toBuffer());
 
 		// building manually or will get protobuf errors on send
-		envelope = client_utils.toEnvelope(client_utils.signProposal(signer, seekPayload));
+		envelope = client_utils.toEnvelope(await client_utils.signProposal(signer, seekPayload));
 		// this will return us a block
 		block = await orderer.sendDeliver(envelope);
 		if (!block) {
@@ -2616,7 +2616,7 @@ const Channel = class {
 		);
 		const header = client_utils.buildHeader(signer, channelHeader, request.txId.getNonce());
 		const proposal = client_utils.buildProposal(lcccSpec, header, request.transientMap);
-		const signed_proposal = client_utils.signProposal(signer, proposal);
+		const signed_proposal = await client_utils.signProposal(signer, proposal);
 
 		const responses = await client_utils.sendPeersProposal(peers, signed_proposal, timeout);
 		return [responses, proposal];
@@ -2738,7 +2738,7 @@ const Channel = class {
 
 		if (!request.targets && this._endorsement_handler) {
 			logger.debug('%s - running with endorsement handler', method);
-			const proposal = Channel._buildSignedProposal(request, this._name, this._clientContext);
+			const proposal = await Channel._buildSignedProposal(request, this._name, this._clientContext);
 
 			let endorsement_hint = request.endorsement_hint;
 			if (!endorsement_hint && request.chaincodeId) {
@@ -2789,13 +2789,13 @@ const Channel = class {
 			throw new Error(errorMsg);
 		}
 
-		const proposal = Channel._buildSignedProposal(request, channelId, client_context);
+		const proposal = await Channel._buildSignedProposal(request, channelId, client_context);
 
 		const responses = await client_utils.sendPeersProposal(request.targets, proposal.signed, timeout);
 		return [responses, proposal.source];
 	}
 
-	static _buildSignedProposal(request, channelId, client_context) {
+	static async _buildSignedProposal(request, channelId, client_context) {
 		const method = '_buildSignedProposal';
 		logger.debug('%s - start', method);
 
@@ -2841,7 +2841,7 @@ const Channel = class {
 
 		const header = client_utils.buildHeader(signer, channelHeader, request.txId.getNonce());
 		const proposal = client_utils.buildProposal(invokeSpec, header, request.transientMap);
-		const signed_proposal = client_utils.signProposal(signer, proposal);
+		const signed_proposal = await client_utils.signProposal(signer, proposal);
 
 		return {signed: signed_proposal, source: proposal};
 	}
@@ -2933,7 +2933,7 @@ const Channel = class {
 			use_admin_signer = request.txId.isAdmin();
 		}
 
-		const envelope = Channel.buildEnvelope(this._clientContext, chaincodeProposal, endorsements, proposalResponse, use_admin_signer);
+		const envelope = await Channel.buildEnvelope(this._clientContext, chaincodeProposal, endorsements, proposalResponse, use_admin_signer);
 
 		if (this._commit_handler) {
 			const params = {
@@ -3149,7 +3149,7 @@ const Channel = class {
 	 * Internal static method to allow transaction envelop to be built without
 	 * creating a new channel
 	 */
-	static buildEnvelope(clientContext, chaincodeProposal, endorsements, proposalResponse, use_admin_signer) {
+	static async buildEnvelope(clientContext, chaincodeProposal, endorsements, proposalResponse, use_admin_signer) {
 
 		const header = _commonProto.Header.decode(chaincodeProposal.getHeader());
 
@@ -3186,7 +3186,7 @@ const Channel = class {
 		payload.setData(transaction.toBuffer());
 
 		const signer = clientContext._getSigningIdentity(use_admin_signer);
-		return client_utils.toEnvelope(client_utils.signProposal(signer, payload));
+		return client_utils.toEnvelope(await client_utils.signProposal(signer, payload));
 	}
 	/**
 	 * @typedef {Object} ChaincodeQueryRequest

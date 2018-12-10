@@ -168,7 +168,7 @@ class Signer {
 	 * @param {Object} opts
 	 *      hashingFunction: the function to use to hash
 	 */
-	sign(digest, opts) {
+	async sign(digest, opts) {
 		return this._cryptoSuite.sign(this._key, digest, opts);
 	}
 }
@@ -219,7 +219,7 @@ class SigningIdentity extends Identity {
 	 *   different hashing algorithms to be used. If not present, will default to the hash function
 	 *   configured for the identity's own crypto suite object
 	 */
-	sign(msg, opts) {
+	async sign(msg, opts) {
 		// calculate the hash for the message before signing
 		let hashFunction;
 		if (opts && opts.hashFunction) {
@@ -233,7 +233,7 @@ class SigningIdentity extends Identity {
 		}
 
 		const digest = hashFunction(msg);
-		return this._signer.sign(Buffer.from(digest, 'hex'), null);
+		return await this._signer.sign(Buffer.from(digest, 'hex'), null);
 	}
 
 	static isInstance(object) {

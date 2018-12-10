@@ -110,7 +110,7 @@ module.exports = class ECDSA_KEY extends api.Key {
 	 * @throws Will throw an error if this is not a private key
 	 * @throws Will throw an error if CSR generation fails for any other reason
 	 */
-	generateCSR(subjectDN) {
+	async generateCSR(subjectDN) {
 
 		// check to see if this is a private key
 		if (!this.isPrivate()) {
@@ -118,7 +118,7 @@ module.exports = class ECDSA_KEY extends api.Key {
 		}
 
 		try {
-			const csr = asn1.csr.CSRUtil.newCSRPEM({
+			const csr = await asn1.csr.CSRUtil.newCSRPEM({
 				subject: {str: asn1.x509.X500Name.ldapToOneline(subjectDN)},
 				sbjpubkey: this.getPublicKey()._key,
 				sigalg: 'SHA256withECDSA',

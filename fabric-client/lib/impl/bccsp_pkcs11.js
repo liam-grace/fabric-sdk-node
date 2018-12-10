@@ -581,30 +581,47 @@ class CryptoSuite_PKCS11 extends api.CryptoSuite {
 	/*
 	 * PKCS11 signing digest with an ECDSA private key.
 	 */
-	_pkcs11Sign(pkcs11, pkcs11Session, key, digest) {
-		try {
-			/*
-			 * key has been checked to be an ECDSA private key.
-			 */
-			pkcs11.C_SignInit(pkcs11Session, {mechanism: pkcs11js.CKM_ECDSA},
-				key._handle);
-			const sig = pkcs11.C_Sign(pkcs11Session, digest,
-				Buffer.alloc(this._keySize));
-			logger.debug(__func() + 'ECDSA RAW signature: ' +
-				util.inspect(sig, {depth: null}));
-			/*
-			 * ASN1 DER encoding against malleability.
-			 */
-			const r = new BN(sig.slice(0, sig.length / 2).toString('hex'), 16);
-			const s = new BN(sig.slice(sig.length / 2).toString('hex'), 16);
-			const signature = _preventMalleability({r: r, s: s}, this._ecdsaCurve);
-			const der = (new ecsig({r: signature.r, s: signature.s})).toDER();
-			logger.debug(__func() + 'ECDSA DER signature: ' +
-				util.inspect(Buffer.from(der), {depth: null}));
-			return Buffer.from(der);
-		} catch (e) {
-			throw (e);
+	async _pkcs11Sign(pkcs11, pkcs11Session, key, digest) {
+		if (!this.queue) {
+			this.queue = [];
+			this.num = 0;
 		}
+		const num = this.num + Math.random();
+		this.queue.push(num);
+		/*
+		 * key has been checked to be an ECDSA private key.
+		 */
+		await new Promise(res => {
+			const interval = setInterval(() => {
+				if (this.queue[0] === num) {
+					clearInterval(interval);
+					return res();
+				}
+			}, 50);
+		});
+		const sig = await new Promise((resolve, reject) => {
+			pkcs11.C_SignInit(pkcs11Session, {mechanism: pkcs11js.CKM_ECDSA}, key._handle);
+
+			pkcs11.C_Sign(pkcs11Session, digest, Buffer.alloc(this._keySize), (err, s) => {
+				if (err) {
+					return reject(err);
+				}
+				this.queue.shift();
+				return resolve(s);
+			});
+		});
+		logger.debug(__func() + 'ECDSA RAW signature: ' +
+		util.inspect(sig, {depth: null}));
+		/*
+		* ASN1 DER encoding against malleability.
+		*/
+		const r = new BN(sig.slice(0, sig.length / 2).toString('hex'), 16);
+		const s = new BN(sig.slice(sig.length / 2).toString('hex'), 16);
+		const signature = _preventMalleability({r: r, s: s}, this._ecdsaCurve);
+		const der = (new ecsig({r: signature.r, s: signature.s})).toDER();
+		logger.debug(__func() + 'ECDSA DER signature: ' +
+		util.inspect(Buffer.from(der), {depth: null}));
+		return Buffer.from(der);
 	}
 
 	/*
@@ -930,7 +947,7 @@ class CryptoSuite_PKCS11 extends api.CryptoSuite {
 	 * Signs digest using key k.
 	 *
 	 */
-	sign(key, digest) {
+	async sign(key, digest) {
 		if (typeof key === 'undefined' || key === null ||
 			!(key instanceof ecdsaKey) || !key.isPrivate()) {
 			throw new Error(__func() + 'key must be PKCS11_ECDSA_KEY type private key');

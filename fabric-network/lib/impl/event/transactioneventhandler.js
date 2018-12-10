@@ -80,19 +80,16 @@ class TransactionEventHandler {
 	async _registerTxEventListeners() {
 		const registrationOptions = {unregister: true};
 
-		const promises = this.eventHubs.map((eventHub) => {
-			return new Promise((resolve) => {
-				logger.debug('_registerTxEventListeners:', `registerTxEvent(${this.transactionId}) for event hub:`, eventHub.getName());
+		const promises = this.eventHubs.map(async (eventHub) => {
+			logger.debug('_registerTxEventListeners:', `registerTxEvent(${this.transactionId}) for event hub:`, eventHub.getName());
 
-				eventHub.registerTxEvent(
-					this.transactionId,
-					(txId, code) => this._onEvent(eventHub, txId, code),
-					(err) => this._onError(eventHub, err),
-					registrationOptions
-				);
-				eventHub.connect();
-				resolve();
-			});
+			eventHub.registerTxEvent(
+				this.transactionId,
+				(txId, code) => this._onEvent(eventHub, txId, code),
+				(err) => this._onError(eventHub, err),
+				registrationOptions
+			);
+			return await eventHub.connect();
 		});
 
 		await Promise.all(promises);

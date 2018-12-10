@@ -220,7 +220,7 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 	 * This is an implementation of {@link module:api.CryptoSuite#sign}
 	 * Signs digest using key k.
 	 */
-	sign(key, digest) {
+	async sign(key, digest) {
 		if (typeof key === 'undefined' || key === null) {
 			throw new Error('A valid key is required to sign');
 		}
@@ -232,7 +232,7 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 		// Note that the statement below uses internal implementation specific to the
 		// module './ecdsa/key.js'
 		const signKey = this._ecdsa.keyFromPrivate(key._key.prvKeyHex, 'hex');
-		let sig = this._ecdsa.sign(digest, signKey);
+		let sig = await this._ecdsa.sign(digest, signKey);
 		sig = _preventMalleability(sig, key._key.ecparams);
 		logger.debug('ecdsa signature: ', sig);
 		return sig.toDER();

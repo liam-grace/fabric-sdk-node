@@ -330,7 +330,6 @@ function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, versi
 			}
 
 		}, (err) => {
-
 			t.fail(util.format('Failed to initialize the channel. %s', err.stack ? err.stack : err));
 			throw new Error('Failed to initialize the channel');
 
@@ -557,7 +556,7 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore, fcn, args, 
 			return channel.sendTransactionProposal(request);
 
 		}, (err) => {
-
+			console.log(err.stack);
 			t.fail('Failed to enroll user \'admin\'. ' + err);
 			throw new Error('Failed to enroll user \'admin\'. ' + err);
 		}).then((results) => {

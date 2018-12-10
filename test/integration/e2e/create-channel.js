@@ -63,7 +63,7 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', async (t) => {
 	t.pass('Successfully enrolled user \'admin\' for org1');
 
 	// sign the config
-	let signature = client.signChannelConfig(config);
+	let signature = await client.signChannelConfig(config);
 	// convert signature to a storable string
 	// fabric-client SDK will convert back during create
 	const string_signature = signature.toBuffer().toString('hex');
@@ -76,7 +76,7 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', async (t) => {
 	t.pass('Successfully enrolled user \'admin\' for org2');
 
 	// sign the config
-	signature = client.signChannelConfig(config);
+	signature = await client.signChannelConfig(config);
 	t.pass('Successfully signed config update');
 
 	// collect signature from org2 admin

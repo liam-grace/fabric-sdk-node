@@ -653,7 +653,7 @@ const Client = class extends BaseClient {
 	 * @param {byte[]} loadConfig - The Configuration Update in byte form
 	 * @return {ConfigSignature} - The signature of the current user on the config bytes
 	 */
-	signChannelConfig(loadConfig) {
+	async signChannelConfig(loadConfig) {
 		logger.debug('signChannelConfigUpdate - start');
 		if (!loadConfig) {
 			throw new Error('Channel configuration update parameter is required.');
@@ -673,7 +673,7 @@ const Client = class extends BaseClient {
 
 		// get all the bytes to be signed together, then sign
 		const signing_bytes = Buffer.concat([signature_header_bytes, loadConfig]);
-		const sig = signer.sign(signing_bytes);
+		const sig = await signer.sign(signing_bytes);
 		const signature_bytes = Buffer.from(sig);
 
 		// build the return object
@@ -798,7 +798,7 @@ const Client = class extends BaseClient {
 			proto_payload.setData(proto_config_Update_envelope.toBuffer());
 			const payload_bytes = proto_payload.toBuffer();
 
-			const sig = signer.sign(payload_bytes);
+			const sig = await signer.sign(payload_bytes);
 			signature = Buffer.from(sig);
 			payload = payload_bytes;
 		}
@@ -1171,7 +1171,7 @@ const Client = class extends BaseClient {
 			);
 			const header = clientUtils.buildHeader(signer, channelHeader, tx_id.getNonce());
 			const proposal = clientUtils.buildProposal(lcccSpec, header);
-			const signed_proposal = clientUtils.signProposal(signer, proposal);
+			const signed_proposal = await clientUtils.signProposal(signer, proposal);
 			logger.debug('installChaincode - about to sendPeersProposal');
 			const responses = await clientUtils.sendPeersProposal(peers, signed_proposal, timeout);
 			return [responses, proposal];

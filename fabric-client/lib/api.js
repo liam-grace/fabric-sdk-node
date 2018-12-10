@@ -146,7 +146,7 @@ module.exports.CryptoSuite = class {
 	 * for hashing the larger message and passing the hash (as digest) to sign.
 	 * @returns {byte[]} the resulting signature
 	 */
-	sign(key, digest) {
+	async sign(key, digest) {
 	}
 
 	/**

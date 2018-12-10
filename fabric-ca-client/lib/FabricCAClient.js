@@ -268,40 +268,43 @@ const FabricCAClient = class {
 	}
 
 	request(http_method, api_method, signingIdentity, requestObj) {
-
-		// Check for required args (requestObj optional)
-		if (arguments.length < 3) {
-			return Promise.reject('Missing required parameters.  \'http_method\', \'api_method\' and \'signingIdentity\' are all required.');
-		}
-
-		if (requestObj) {
-			requestObj.caName = this._caName;
-		}
-		// establish socket timeout
-		// default: 3000ms
-		const CONNECTION_TIMEOUT = config.get('connection-timeout', 3000);
-		// SO_TIMEOUT is the timeout that a read() call will block,
-		// it means that if no data arrives within SO_TIMEOUT,
-		// socket will throw an error
-		// default: infinite
-		const SO_TIMEOUT = config.get('socket-operation-timeout');
-		logger.debug('CONNECTION_TIMEOUT = %s, SO_TIMEOUT = %s', CONNECTION_TIMEOUT, SO_TIMEOUT ? SO_TIMEOUT : 'infinite');
-
 		const self = this;
-		const requestOptions = {
-			hostname: self._hostname,
-			port: self._port,
-			path: self._baseAPI + api_method,
-			method: http_method,
-			headers: {
-				Authorization: self.generateAuthToken(requestObj, signingIdentity)
-			},
-			ca: self._tlsOptions.trustedRoots,
-			rejectUnauthorized: self._tlsOptions.verify,
-			timeout: CONNECTION_TIMEOUT
-		};
+		return new Promise((async (resolve, reject) => {
+			// Check for required args (requestObj optional)
+			if (arguments.length < 3) {
+				return Promise.reject('Missing required parameters.  \'http_method\', \'api_method\' and \'signingIdentity\' are all required.');
+			}
 
-		return new Promise(((resolve, reject) => {
+			if (requestObj) {
+				requestObj.caName = this._caName;
+			}
+			// establish socket timeout
+			// default: 3000ms
+			const CONNECTION_TIMEOUT = config.get('connection-timeout', 3000);
+			// SO_TIMEOUT is the timeout that a read() call will block,
+			// it means that if no data arrives within SO_TIMEOUT,
+			// socket will throw an error
+			// default: infinite
+			const SO_TIMEOUT = config.get('socket-operation-timeout');
+			logger.debug('CONNECTION_TIMEOUT = %s, SO_TIMEOUT = %s', CONNECTION_TIMEOUT, SO_TIMEOUT ? SO_TIMEOUT : 'infinite');
+
+			let requestOptions;
+			try {
+				requestOptions = {
+					hostname: self._hostname,
+					port: self._port,
+					path: self._baseAPI + api_method,
+					method: http_method,
+					headers: {
+						Authorization: await self.generateAuthToken(requestObj, signingIdentity)
+					},
+					ca: self._tlsOptions.trustedRoots,
+					rejectUnauthorized: self._tlsOptions.verify,
+					timeout: CONNECTION_TIMEOUT
+				};
+			} catch (err) {
+				return reject(err);
+			}
 
 			const request = self._httpClient.request(requestOptions, (response) => {
 
@@ -364,7 +367,7 @@ const FabricCAClient = class {
 	/*
 	 * Generate authorization token required for accessing fabric-ca APIs
 	 */
-	generateAuthToken(reqBody, signingIdentity) {
+	async generateAuthToken(reqBody, signingIdentity) {
 		// specific signing procedure is according to:
 		// https://github.com/hyperledger/fabric-ca/blob/master/util/util.go#L213
 		const cert = Buffer.from(signingIdentity._certificate).toString('base64');
@@ -376,7 +379,7 @@ const FabricCAClient = class {
 			bodyAndcert = '.' + cert;
 		}
 
-		const sig = signingIdentity.sign(bodyAndcert, {hashFunction: this._cryptoPrimitives.hash.bind(this._cryptoPrimitives)});
+		const sig = await signingIdentity.sign(bodyAndcert, {hashFunction: this._cryptoPrimitives.hash.bind(this._cryptoPrimitives)});
 		logger.debug(util.format('bodyAndcert: %s', bodyAndcert));
 
 		const b64Sign = Buffer.from(sig, 'hex').toString('base64');

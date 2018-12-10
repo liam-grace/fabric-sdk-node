@@ -77,13 +77,13 @@ const PKCS11_ECDSA_KEY = class extends api.Key {
 		}
 	}
 
-	signCSR(csr, sigAlgName) {
+	async signCSR(csr, sigAlgName) {
 
 		csr.asn1SignatureAlg =
 			new asn1.x509.AlgorithmIdentifier({'name': sigAlgName});
 
 		const digest = this._cryptoSuite.hash(Buffer.from(csr.asn1CSRInfo.getEncodedHex(), 'hex'));
-		const sig = this._cryptoSuite.sign(this, Buffer.from(digest, 'hex'));
+		const sig = await this._cryptoSuite.sign(this, Buffer.from(digest, 'hex'));
 		csr.hexSig = sig.toString('hex');
 
 		csr.asn1Sig = new asn1.DERBitString({'hex': '00' + csr.hexSig});
@@ -92,7 +92,7 @@ const PKCS11_ECDSA_KEY = class extends api.Key {
 		csr.isModified = false;
 	}
 
-	newCSRPEM(param) {
+	async newCSRPEM(param) {
 		const _KJUR_asn1_csr = asn1.csr;
 		if (param.subject === undefined) {
 			throw new Error('parameter subject undefined');
@@ -120,7 +120,7 @@ const PKCS11_ECDSA_KEY = class extends api.Key {
 		}
 
 		const csr = new _KJUR_asn1_csr.CertificationRequest({'csrinfo': csri});
-		this.signCSR(csr, param.sigalg);
+		await this.signCSR(csr, param.sigalg);
 
 		const pem = csr.getPEMString();
 		return pem;
@@ -136,14 +136,14 @@ const PKCS11_ECDSA_KEY = class extends api.Key {
 		throw new Error('Not implemented');
 	}
 
-	generateCSR(subjectDN) {
+	async generateCSR(subjectDN) {
 		// check to see if this is a private key
 		if (!this.isPrivate()) {
 			throw new Error('A CSR cannot be generated from a public key');
 		}
 
 		try {
-			const csr = this.newCSRPEM({
+			const csr = await this.newCSRPEM({
 				subject: {str: asn1.x509.X500Name.ldapToOneline(subjectDN)},
 				sbjpubkey: this._pub,
 				sigalg: 'SHA256withECDSA',

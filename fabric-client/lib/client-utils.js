@@ -76,10 +76,10 @@ module.exports.sendPeersProposal = async (peers, proposal, timeout) => {
 /*
  * This function will sign the proposal
  */
-module.exports.signProposal = (signingIdentity, proposal) => {
+module.exports.signProposal = async (signingIdentity, proposal) => {
 	const proposal_bytes = proposal.toBuffer();
 	// sign the proposal
-	const signature = Buffer.from(signingIdentity.sign(proposal_bytes));
+	const signature = Buffer.from(await signingIdentity.sign(proposal_bytes));
 
 	// build manually for now
 	return {

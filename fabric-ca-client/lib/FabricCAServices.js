@@ -219,7 +219,7 @@ const FabricCAServices = class extends BaseClient {
 					throw new Error(util.format('Failed to generate key for enrollment due to error [%s]', err));
 				}
 				try {
-					csr = privateKey.generateCSR('CN=' + req.enrollmentID);
+					csr = await privateKey.generateCSR('CN=' + req.enrollmentID);
 					logger.debug('successfully generated csr');
 				} catch (err) {
 					throw new Error(util.format('Failed to generate CSR for enrollmemnt due to error [%s]', err));
@@ -294,10 +294,10 @@ const FabricCAServices = class extends BaseClient {
 			// generate enrollment certificate pair for signing
 			self.getCryptoSuite().generateKey()
 				.then(
-					(privateKey) => {
+					async (privateKey) => {
 						// generate CSR using the subject of the current user's certificate
 						try {
-							const csr = privateKey.generateCSR('CN=' + subject);
+							const csr = await privateKey.generateCSR('CN=' + subject);
 							self._fabricCAClient.reenroll(csr, currentUser.getSigningIdentity(), attr_reqs)
 								.then(
 									(response) => {

@@ -288,7 +288,7 @@ class ChannelEventHub {
 	 *        is an error, this ChannelEventHub will be shutdown (disconnected).
 	 *        Callback function should take two parameters as (error, value).
 	 */
-	connect(options, connectCallback) {
+	async connect(options, connectCallback) {
 		let signedEvent = null;
 		let full_block = null;
 
@@ -321,7 +321,7 @@ class ChannelEventHub {
 		}
 
 		logger.debug('connect - signed event:%s', !!signedEvent);
-		this._connect({signedEvent});
+		await this._connect({signedEvent});
 		logger.debug('connect - end %s', this.getPeerAddr());
 	}
 
@@ -339,7 +339,7 @@ class ChannelEventHub {
 	 * @param {InternalConnectOptions} request - internal use only, the options to be passed
 	 *                                           to the internal method _connect()
 	 */
-	_connect(request) {
+	async _connect(request) {
 		let force = false;
 		let signedEvent = null;
 		if (request) {
@@ -494,12 +494,16 @@ class ChannelEventHub {
 			}
 		});
 
-		if (signedEvent) {
-			this._sendSignedRegistration(signedEvent);
-		} else {
-			this._sendRegistration();
+		try {
+			if (signedEvent) {
+				this._sendSignedRegistration(signedEvent);
+			} else {
+				await this._sendRegistration();
+			}
+			logger.debug('_connect - end stream:', stream_id);
+		} catch (err) {
+			logger.error('Error sending registration. ', err.stack);
 		}
-		logger.debug('_connect - end stream:', stream_id);
 	}
 
 	/**
@@ -572,7 +576,7 @@ class ChannelEventHub {
 	 * Builds a signed event registration
 	 * and sends it to the peer's event hub.
 	 */
-	_sendRegistration() {
+	async _sendRegistration() {
 		// use the admin if available
 		const txId = this._clientContext.newTransactionID(true);
 		const signer = this._clientContext._getSigningIdentity(true);
@@ -583,7 +587,7 @@ class ChannelEventHub {
 		};
 		const seekPayloadBytes = this.generateUnsignedRegistration(opt);
 
-		const sig = signer.sign(seekPayloadBytes);
+		const sig = await signer.sign(seekPayloadBytes);
 		const signature = Buffer.from(sig);
 
 		// building manually or will get protobuf errors on send
@@ -899,7 +903,7 @@ class ChannelEventHub {
 	 * @param {boolean} force_reconnect - attempt to reconnect if the stream
 	 *        is not in the 'READY' state
 	 */
-	checkConnection(force_reconnect) {
+	async checkConnection(force_reconnect) {
 		logger.debug('checkConnection - start force_reconnect:%s', force_reconnect);
 		const ready = isStreamReady(this);
 		logger.debug('checkConnection -  %s with stream channel ready %s', this._peer.getUrl(), ready);
@@ -915,13 +919,13 @@ class ChannelEventHub {
 					} else if (!ready) {
 						// try to reconnect
 						this._connect_running = false;
-						this._connect({force: true});
+						await this._connect({force: true});
 					}
 				} else {
 					logger.debug('checkConnection - stream was shutdown - will reconnected');
 					// try to reconnect
 					this._connect_running = false;
-					this._connect({force: true});
+					await this._connect({force: true});
 				}
 			} catch (error) {
 				logger.error('checkConnection - error ::' + (error.stack ? error.stack : error));
