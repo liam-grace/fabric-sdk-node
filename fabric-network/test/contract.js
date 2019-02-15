@@ -20,6 +20,7 @@ const Gateway = require('../lib/gateway');
 const Network = require('fabric-network/lib/network');
 const Transaction = require('../lib/transaction');
 const TransactionEventHandler = require('../lib/impl/event/transactioneventhandler');
+const BaseCheckpointer = require('./../lib/impl/event/basecheckpointer');
 
 describe('Contract', () => {
 	const chaincodeId = 'CHAINCODE_ID';
@@ -29,12 +30,14 @@ describe('Contract', () => {
 	let mockChannel, mockClient, mockGateway;
 	let contract;
 	let mockTransactionID;
+	let mockCheckpointer;
 
 	beforeEach(() => {
 		mockChannel = sinon.createStubInstance(Channel);
 		mockClient = sinon.createStubInstance(Client);
 
 		mockGateway = sinon.createStubInstance(Gateway);
+		mockCheckpointer = sinon.createStubInstance(BaseCheckpointer);
 		mockGateway.getClient.returns(mockClient);
 		mockGateway.getOptions.returns({
 			eventHandlerOptions: {
@@ -54,7 +57,7 @@ describe('Contract', () => {
 		mockClient.newTransactionID.returns(mockTransactionID);
 		mockChannel.getName.returns('testchainid');
 
-		contract = new Contract(network, chaincodeId, mockGateway);
+		contract = new Contract(network, chaincodeId, mockGateway, mockCheckpointer);
 	});
 
 	afterEach(() => {
@@ -63,7 +66,7 @@ describe('Contract', () => {
 
 	describe('#constructor', () => {
 		it('throws if namespace is not a string', () => {
-			(() => new Contract(network, chaincodeId, mockGateway, 123))
+			(() => new Contract(network, chaincodeId, mockGateway, mockCheckpointer, 123))
 				.should.throw(/namespace/i);
 		});
 	});
@@ -109,7 +112,7 @@ describe('Contract', () => {
 			const name = 'name';
 			const expected = `${namespace}:${name}`;
 
-			contract = new Contract(network, chaincodeId, mockGateway, namespace);
+			contract = new Contract(network, chaincodeId, mockGateway, mockCheckpointer, namespace);
 			const result = contract.createTransaction(name);
 
 			result.getName().should.equal(expected);

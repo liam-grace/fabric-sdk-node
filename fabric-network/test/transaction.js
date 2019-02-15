@@ -204,11 +204,10 @@ describe('Transaction', () => {
 
 		it('uses a supplied event handler strategy', async () => {
 			const stubEventHandler = sinon.createStubInstance(TransactionEventHandler);
-			const txId = transaction.getTransactionID().getTransactionID();
 			const network = stubContract.getNetwork();
 			const options = stubContract.getEventHandlerOptions();
 			const stubEventHandlerFactoryFn = sinon.stub();
-			stubEventHandlerFactoryFn.withArgs(txId, network, options).returns(stubEventHandler);
+			stubEventHandlerFactoryFn.withArgs(transaction, network, options).returns(stubEventHandler);
 
 			await transaction.setEventHandlerStrategy(stubEventHandlerFactoryFn).submit();
 

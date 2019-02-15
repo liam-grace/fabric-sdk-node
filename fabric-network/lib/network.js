@@ -7,7 +7,7 @@
 'use strict';
 const FabricConstants = require('fabric-client/lib/Constants');
 const Contract = require('./contract');
-const EventHubFactory = require('fabric-network/lib/impl/event/eventhubfactory');
+const EventHubManager = require('fabric-network/lib/impl/event/eventhubmanager');
 
 const logger = require('./logger').getLogger('Network');
 const util = require('util');
@@ -31,7 +31,6 @@ class Network {
 		this.gateway = gateway;
 		this.channel = channel;
 		this.contracts = new Map();
-		this.eventHubFactory = new EventHubFactory(channel);
 		this.initialized = false;
 	}
 
@@ -106,6 +105,12 @@ class Network {
 		// Must be created after channel initialization to ensure discovery has located peers
 		const queryHandlerOptions = this.gateway.getOptions().queryHandlerOptions;
 		this.queryHandler = queryHandlerOptions.strategy(this, queryHandlerOptions);
+
+		this.checkpointer = this.gateway.getOptions().checkpointer;
+
+		const eventHubSelectionOptions = this.gateway.getOptions().eventHubSelectionOptions;
+		this.eventHubSelectionStrategy = eventHubSelectionOptions.strategy(this);
+		this.eventHubManager = new EventHubManager(this);
 	}
 
 	/**
@@ -134,6 +139,7 @@ class Network {
 				this,
 				chaincodeId,
 				this.gateway,
+				this.getCheckpointer(),
 				name
 			);
 			this.contracts.set(key, contract);
@@ -144,24 +150,18 @@ class Network {
 	_dispose() {
 		logger.debug('in _dispose');
 
+		for (const contract of this.contracts.values()) {
+			contract.dispose();
+		}
 		// Danger as this cached in gateway, and also async so how would
 		// network._dispose() followed by network.initialize() be safe ?
 		// make this private is the safest option.
 		this.contracts.clear();
 
-		this.eventHubFactory.dispose();
+		this.eventHubManager.dispose();
 		this.channel.close();
 
 		this.initialized = false;
-	}
-
-	/**
-	 * Get the event hub factory for this network.
-	 * @private
-	 * @returns {EventHubFactory} An event hub factory.
-	 */
-	getEventHubFactory() {
-		return this.eventHubFactory;
 	}
 
 	/**
@@ -171,6 +171,18 @@ class Network {
 	 */
 	getQueryHandler() {
 		return this.queryHandler;
+	}
+
+	getCheckpointer() {
+		return this.checkpointer;
+	}
+
+	getEventHubManager() {
+		return this.eventHubManager;
+	}
+
+	getEventHubSelectionStrategy() {
+		return this.eventHubSelectionStrategy;
 	}
 }
 

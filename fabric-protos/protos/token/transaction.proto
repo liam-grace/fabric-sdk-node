@@ -77,22 +77,6 @@ message PlainTokenAction {
     }
 }
 
-// TokenOwner holds the identity of a token owner
-message TokenOwner {
-    enum Type {
-        MSP_IDENTIFIER = 0;
-        // more types to come ....
-        // for example
-        // CHAINCODE_ID = 1;
-        // MSP_OWNER_IDENTIFIER = 2;
-    }
-
-    // The type of the identity
-    Type type = 1;
-    // The serialization of an identity
-    bytes raw = 2;
-}
-
 // PlainImport specifies an import of one or more tokens in plaintext format
 message PlainImport {
 
@@ -104,7 +88,7 @@ message PlainImport {
 message PlainTransfer {
 
     // The inputs to the transfer transaction are specified by their ID
-    repeated TokenId inputs = 1;
+    repeated InputId inputs = 1;
 
     // A transfer transaction may contain one or more outputs
     repeated PlainOutput outputs = 2;
@@ -113,7 +97,7 @@ message PlainTransfer {
 // PlainApprove specifies an approve of one or more tokens in plaintext format
 message PlainApprove {
     // The inputs to the transfer transaction are specified by their ID
-    repeated TokenId inputs = 1;
+    repeated InputId inputs = 1;
 
     // An approve transaction contains one or more plain delegated outputs
     repeated PlainDelegatedOutput delegated_outputs = 2;
@@ -126,7 +110,7 @@ message PlainApprove {
 // an to a delegated output
 message PlainTransferFrom {
     // The inputs to the transfer transaction are specified by their ID
-    repeated TokenId inputs = 1;
+    repeated InputId inputs = 1;
 
     // A transferFrom transaction contains multiple outputs
     repeated PlainOutput outputs = 2;
@@ -139,7 +123,7 @@ message PlainTransferFrom {
 message PlainOutput {
 
     // The owner is the serialization of a SerializedIdentity struct
-    TokenOwner owner = 1;
+    bytes owner = 1;
 
     // The token type
     string type = 2;
@@ -148,8 +132,8 @@ message PlainOutput {
     uint64 quantity = 3;
 }
 
-// A TokenId specifies an output using the transaction ID and the index of the output in the transaction
-message TokenId {
+// An InputId specifies an output using the transaction ID and the index of the output in the transaction
+message InputId {
 
     // The transaction ID
     string tx_id = 1;
@@ -161,11 +145,11 @@ message TokenId {
 // A PlainDelegatedOutput is the result of approve transactions using plaintext tokens
 message PlainDelegatedOutput {
     // The owner is the serialization of a SerializedIdentity struct
-    TokenOwner owner = 1;
+    bytes owner = 1;
 
     // The delegatees is an arrary of the serialized identities that can spend the output on behalf
     // the owner
-    repeated TokenOwner delegatees = 2;
+    repeated bytes delegatees = 2;
 
     // The token type
     string type = 3;
